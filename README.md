@@ -1,7 +1,6 @@
 # Goveem
 
-Goveem dikembangkan dengan kode sumber Golang dan Echo Framework
-Goveem bekerja dengan membantu dan menyederhanakan pekerjaan anda dalam membangun aplikasi
+Goveem was developed with Golang source code and the Echo Framework. Goveem works by helping and simplifying your work in building applications
 
 #Query Data
 *goveem.GetData(<query>)* : returned response,status
