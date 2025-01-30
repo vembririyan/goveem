@@ -7,16 +7,18 @@ import (
 	"strings"
 )
 
-func GetData(query string) ([]map[string]interface{}, int) {
+func SELECT(query string) ([]map[string]interface{}, int, error) {
 	rows, err := DB.Query(query)
 	if err != nil {
-		return nil, 500
+		fmt.Println("Error", err)
+
+		return nil, 500, err
 	}
 	defer rows.Close()
 
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, 500
+		return nil, 500, err
 	}
 
 	var result []map[string]interface{}
@@ -31,7 +33,7 @@ func GetData(query string) ([]map[string]interface{}, int) {
 		}
 
 		if err := rows.Scan(values...); err != nil {
-			return nil, 500
+			return nil, 500, err
 		}
 		for i, colName := range columns {
 			rowMap[colName] = *(values[i].(*interface{}))
@@ -40,19 +42,40 @@ func GetData(query string) ([]map[string]interface{}, int) {
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, 500
+		return nil, 500, err
 	}
 
 	defer DB.Close()
 
 	if err != nil {
 		fmt.Println("Error", err)
-		return nil, 500
+		return nil, 500, err
 	}
-	return result, 200
+	return result, 200, err
 }
 
-func UpdateData(query string, updateFields map[string]interface{}) int {
+func ExecQuery(query string) (int, error) {
+	res, err := DB.Exec(query)
+
+	if err != nil {
+		fmt.Println("Error", err)
+		return 500, err
+	}
+	rowsAffected, err := res.RowsAffected()
+
+	if err != nil {
+		log.Fatal("Error retrieving affected rows:", err)
+		return 400, err
+	}
+
+	if rowsAffected >= 0 {
+		return 200, err
+	}
+
+	return 500, err
+}
+
+func UpdateData(query string, updateFields map[string]interface{}) (int, error) {
 	var setClauses []string
 	var values []interface{}
 
@@ -80,68 +103,19 @@ func UpdateData(query string, updateFields map[string]interface{}) int {
 	res, err := DB.Exec(updateQuery, values...)
 
 	if err != nil {
-		return 500
+		return 500, err
 	}
 
 	rowsAffected, err := res.RowsAffected()
 
 	if err != nil {
 		log.Fatal("Error retrieving affected rows:", err)
-		return 400
+		return 400, err
 	}
 
 	if rowsAffected >= 0 {
-		return 200
+		return 200, err
 	}
 
-	return 400
-}
-
-func UpdateDataQ(query string) int {
-	if strings.Contains(query, "update") && !strings.Contains(query, "delete") {
-		res, err := DB.Exec(query)
-
-		if err != nil {
-			return 500
-		}
-		rowsAffected, err := res.RowsAffected()
-		if rowsAffected >= 0 {
-			return 200
-		}
-		return 400
-	}
-	return 500
-}
-
-func QueryModify(query string) int {
-	res, err := DB.Exec(query)
-	if err != nil {
-		return 500
-	}
-	rowsAffected, err := res.RowsAffected()
-	if err != nil {
-		return 500
-	}
-	if rowsAffected >= 0 {
-		return 200
-	}
-	return 400
-}
-
-func DeleteData(query string) int {
-	if strings.Contains(query, "delete") && !strings.Contains(query, "update") {
-		res, err := DB.Exec(query)
-		if err != nil {
-			return 500
-		}
-		rowsAffected, err := res.RowsAffected()
-		if err != nil {
-			return 500
-		}
-		if rowsAffected >= 0 {
-			return 200
-		}
-		return 400
-	}
-	return 500
+	return 400, err
 }
